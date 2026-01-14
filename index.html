@@ -6,17 +6,184 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> 
     <title> Biciklistička karta grada Zagreb</title>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet"/> 
+
+    
 
   <style>
     html, body { height: 100%; margin: 0; padding: 0; }
     body { overflow: hidden; }
-    #map { width: 100%; height: 100%; }
+    #map {  width: 100%; height: 100%; }
+   
+    .map-btn {
+      position: fixed;
+      right: 12px;
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      border: none;
+      background: #fff;
+      color: #000;
+      cursor: pointer;
+      box-shadow: 0 2px 6px #000000bb;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #info-button { top: 12px; font-size: 18px; }
+
+    #info-panel {
+      position: fixed; inset: 0; z-index: 9998;
+      background: #00000050; display: none; 
+    }
+
+    .info-content {
+      background: #ffffff; max-width: 320px;
+      margin: 80px auto; padding: 16px 18px; border-radius: 8px;
+      font-family: sans-serif; font-size: 14px;
+    }
+
+    .info-content h2 {
+      margin-top: 0; font-size: 18px;
+    }
+
+    #info-close {
+      display: block;
+      margin: 20px auto 0 auto; padding: 10px 22px;
+      background-color: #2e7d32; color: #ffffff;
+      border: none; border-radius: 6px;
+      font-size: 14px; cursor: pointer;
+    }
+
+    #info-close:hover {
+      background-color: #256628;
+    }
+
+    @media (max-width: 600px) {
+      .info-content { margin: 60px 12px; max-width: none;
+      }
+    }
+
+    #zoom-in { top: 58px; font-size: 20px; }
+    #zoom-out { top: 92px; font-size: 20px; }
+    #reset-view { top: 138px; font-size: 18px; border-radius: 6px; }
+
+    #mouse-coords {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      z-index: 9999;
+      background: #ffffff;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: sans-serif;
+      font-size: 13px;
+      box-shadow: 0 2px 6px #000000bb;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .mapboxgl-ctrl-bottom-left { margin-bottom: 12px; margin-left: 5px;}
+
+    #legend{
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      z-index: 9999;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px #000000bb;
+      width: 20px;
+      font-family: sans-serif;
+    }
+
+    .legend-title{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      font-weight: 700;
+      font-size: 14px;
+      border-bottom: 1px solid #e6e6e6;
+    }
+
+    .legend-body{
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+    #legend-open{
+      top: 180px;
+      font-size: 16px;
+      display: none;
+    }
+
+    #legend-close{
+      border: none;
+      background: none;
+      font-size: 16px;
+      cursor: pointer;
+      display: none;
+    }
+
+    @media (max-width: 600px){
+      #legend-open{ display: flex; }
+
+       #legend{
+          display: none;
+          left: 12px;
+          right: 12px;
+          bottom: 12px;
+          width: auto;
+        }
+
+        #legend-close{ display: inline; }
+        #legend.show{ display: block; }
+      }
+
   </style>
 </head>
 
 <body>
+
+  <button id="info-button" aria-label="Informacije o karti" class="map-btn">ℹ</button>
+  
+  <div id="info-panel">
+    <div class="info-content">
+      
+      <h2>Biciklistička karta grada Zagreba</h2>
+      <p><strong>Godina:</strong> 2026</p>
+      <p><strong>Autor:</strong> Ime i Prezime </p>
+      <p><strong>Izvor podataka:</strong><br>OpenStreetMap, Mapbox</p>
+      <p><strong>Opis karte:</strong><br>Pametna vizualizacija biciklističke infrastrukture Grada Zagreba.
+        <br>Diplomski rad</p>     
+      <button id="info-close">Zatvori</button>
+    </div>
+  </div>
+
+  <button id="zoom-in" aria-label="Zoom in" class="map-btn">+</button>
+  <button id="zoom-out" aria-label="Zoom out" class="map-btn">−</button>
+  <button id="reset-view" aria-label="Vrati na početni prikaz" class="map-btn">⌂</button>
+
+  <div id="mouse-coords">Lat: — | Lon: —</div>
+
+  <button id="legend-open" class="map-btn" aria-label="Otvori legendu">☰</button>
+  
+  <div id="legend">
+    <div class="legend-title">Tumač znakova
+    <button id="legend-close" aria-label="Zatvori legendu">✕</button>
+    </div>
+
+    <div class="legend-body" id="legend-body">
+        
+  </div>
+  </div>
+
+
   <div id="map"></div>
 
   <script>
@@ -27,13 +194,86 @@
       style: "mapbox://styles/mpaladin/cmk6qztn6000m01s97k13hvn4",
       center: [16, 45.8],
       zoom: 11,
-      minZoom: 8
+      minZoom: 8,
     });
+    
+    proj4.defs(
+      "EPSG:3765",
+      "+proj=tmerc +lat_0=0 +lon_0=16 +k=0.9999 +x_0=500000 +y_0=0 +ellps=GRS80 +units=m +no_defs"
+    );
+
+    map.addControl(
+     new mapboxgl.ScaleControl({
+      maxWidth: 120,
+      unit: "metric" // m i km
+    }),
+    "bottom-left"
+    );
+
+    const HOME_CENTER = [16, 45.8];
+    const HOME_ZOOM = 11;
+
+    const infoBtn = document.getElementById("info-button");
+    const infoPanel = document.getElementById("info-panel");
+    const infoClose = document.getElementById("info-close");
+    
+    const zoomInBtn = document.getElementById("zoom-in");
+    const zoomOutBtn = document.getElementById("zoom-out");
+    
+    const resetBtn = document.getElementById("reset-view");
+    const coordsBox = document.getElementById("mouse-coords");
+
+    const legend = document.getElementById("legend");
+    const legendOpen = document.getElementById("legend-open");
+    const legendClose = document.getElementById("legend-close");
+
+  infoBtn.addEventListener("click", () => { infoPanel.style.display = "block";  });
+
+  infoClose.addEventListener("click", () => {  infoPanel.style.display = "none";  });
+
+  infoPanel.addEventListener("click", (e) => {
+    if (e.target === infoPanel) {
+      infoPanel.style.display = "none";
+    }  
+  }); 
+
+  zoomInBtn.addEventListener("click", () => {  map.zoomIn(); });
+
+  zoomOutBtn.addEventListener("click", () => {  map.zoomOut();  });
+  
+  resetBtn.addEventListener("click", () => {
+    map.flyTo({
+      center: HOME_CENTER,
+      zoom: HOME_ZOOM,
+      speed: 1.2,
+      curve: 1.4,
+      essential: true
+    });
+  });
+  
+  let last = 0;
+  map.on("mousemove", (e) => {
+    const now = performance.now();
+    if (now - last < 33) return;
+    last = now;
+    
+    const wgs84 = [e.lngLat.lng, e.lngLat.lat];
+    const htrs = proj4("EPSG:4326", "EPSG:3765", wgs84);
+    coordsBox.textContent =  `HTRS96/TM  X: ${htrs[0].toFixed(2)}  Y: ${htrs[1].toFixed(2)}`;
+  });
+
+  legendOpen.addEventListener("click", () => {
+    legend.classList.add("show");
+  });
+
+  legendClose.addEventListener("click", () => {
+    legend.classList.remove("show");
+  });
 
   map.on("error", (e) => console.log("MAP ERROR:", e.error));
   map.on("load", () => console.log("STYLE LOADED OK"));
   window.addEventListener("resize", () => map.resize());
-  
+
   </script>
 </body>
 </html>
