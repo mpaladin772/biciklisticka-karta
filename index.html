@@ -98,7 +98,8 @@
       background: #ffffff;
       border-radius: 8px;
       box-shadow: 0 2px 6px #000000bb;
-      width: 20px;
+      width: 340px;
+      max-width: calc(100vw - 24px);
       font-family: sans-serif;
     }
 
@@ -145,6 +146,63 @@
         #legend.show{ display: block; }
       }
 
+    .legend-toggle{
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .legend-toggle input[type="checkbox"]{
+      width: 20px;
+      height: 20px;
+      accent-color: #2e7d32;
+    }
+
+    .legend-section{
+      display: grid;
+      gap: 8px;
+    }
+
+    .legend-row{
+      display: grid;
+      grid-template-columns: 42px 22px 1fr;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .line-sample{
+      display: inline-block;
+      width: 42px;
+      height: 0;
+      border-top-style: solid;
+      border-top-width: 4px;
+      border-radius: 4px;
+    }
+
+    .line-sample.bike{ border-top-color: #e53935; border-top-width: 5px; }
+    .line-sample.path{ border-top-color: #8d8d8d; border-top-width: 3px; }
+    .line-sample.motor{ border-top-color: #d2a951; border-top-width: 4px; }
+
+    .legend-icon{ font-size: 16px; }
+
+    .legend-sep{
+      border: none;
+      border-top: 1px solid #e6e6e6;
+      margin: 10px 0;
+    }
+
+    .point-sample{
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ffffff;              
+      box-shadow: 0 0 0 2px #e0e0e0;  
+      display: inline-block;
+      justify-self: start;
+    }
+
   </style>
 </head>
 
@@ -157,7 +215,7 @@
       
       <h2>Biciklistička karta grada Zagreba</h2>
       <p><strong>Godina:</strong> 2026</p>
-      <p><strong>Autor:</strong> Ime i Prezime </p>
+      <p><strong>Autor:</strong> Matea Paladin </p>
       <p><strong>Izvor podataka:</strong><br>OpenStreetMap, Mapbox</p>
       <p><strong>Opis karte:</strong><br>Pametna vizualizacija biciklističke infrastrukture Grada Zagreba.
         <br>Diplomski rad</p>     
@@ -179,8 +237,57 @@
     </div>
 
     <div class="legend-body" id="legend-body">
+      <label class="legend-toggle">
+        <input type="checkbox" id="toggle-staze" checked>
+        <span>Sve staze</span>
+      </label>
+      
+      <div class="legend-section">
+        <div class="legend-row">
+          <span class="line-sample bike"></span>
+          <span class="legend-icon"></span>
+          <span>Biciklističke staze</span>
+        </div>
+
+        <div class="legend-row">
+          <span class="line-sample path"></span>
+          <span class="legend-icon"></span>
+          <span>Putevi / staze (path)</span>
+        </div>
         
-  </div>
+        <div class="legend-row">
+            <span class="line-sample motor"></span>
+            <span class="legend-icon"></span>
+            <span>Ceste za motorna vozila</span>
+          </div>
+        </div>
+        <hr class="legend-sep">
+
+      <label class="legend-toggle">
+        <input type="checkbox" id="toggle-tocke" checked>
+        <span>Stanice</span>
+      </label>
+
+      <div class="legend-section">
+        <div class="legend-row">
+          <span class="point-sample"></span>
+          <span class="legend-icon"></span>
+          <span>Najam bicikla</span>
+        </div>
+
+        <div class="legend-row">
+          <span class="point-sample"></span>
+          <span class="legend-icon"></span>
+          <span>Voda</span>
+        </div>
+
+        <div class="legend-row">
+          <span class="point-sample"></span>
+          <span class="legend-icon"></span>
+          <span>Trgovina / servis</span>
+        </div>
+      </div>
+    </div>
   </div>
 
 
@@ -227,6 +334,13 @@
     const legendOpen = document.getElementById("legend-open");
     const legendClose = document.getElementById("legend-close");
 
+    const stazeCheckbox = document.getElementById("toggle-staze");
+    const STAZE_LAYER_ID = "biciklisticke-staze-d3ttnd";
+
+    const tockeCheckbox = document.getElementById("toggle-tocke");
+    const TOCKE_CIRCLE_LAYER = "biciklizam-tocke-2saz5q";
+    const TOCKE_SYMBOL_LAYER = "biciklizam-tocke-2saz5q (1)";
+
   infoBtn.addEventListener("click", () => { infoPanel.style.display = "block";  });
 
   infoClose.addEventListener("click", () => {  infoPanel.style.display = "none";  });
@@ -268,6 +382,17 @@
 
   legendClose.addEventListener("click", () => {
     legend.classList.remove("show");
+  });
+
+  stazeCheckbox.addEventListener("change", () => {
+    const vis = stazeCheckbox.checked ? "visible" : "none";
+    map.setLayoutProperty(STAZE_LAYER_ID, "visibility", vis);
+  });
+
+  tockeCheckbox.addEventListener("change", () => {
+    const vis = tockeCheckbox.checked ? "visible" : "none";
+    map.setLayoutProperty(TOCKE_CIRCLE_LAYER, "visibility", vis);
+    map.setLayoutProperty(TOCKE_SYMBOL_LAYER, "visibility", vis);
   });
 
   map.on("error", (e) => console.log("MAP ERROR:", e.error));
